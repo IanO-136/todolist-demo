@@ -1,13 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+const STORAGE_KEY = 'todos'
+
+const loadTodos = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw === null) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+  } catch {
+    return []
+  }
+}
 
 export default function App() {
-  const [todos, setTodos] = useState([
-    { id: 1, text: 'Read a book', done: false },
-    { id: 2, text: 'Go for a walk', done: true },
-    { id: 3, text: 'Write some code', done: false },
-  ])
+  const [todos, setTodos] = useState(loadTodos)
   const [input, setInput] = useState('')
   const [filter, setFilter] = useState('all')
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
+    } catch {
+      // Quota exceeded or private browsing — fail silently
+    }
+  }, [todos])
 
   const addTodo = () => {
     const text = input.trim()
@@ -20,6 +38,10 @@ export default function App() {
     setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
 
   const deleteTodo = (id) => setTodos(todos.filter((t) => t.id !== id))
+
+  const clearCompleted = () => setTodos(todos.filter((t) => !t.done))
+
+  const completedCount = todos.filter((t) => t.done).length
 
   const visible = todos.filter((t) =>
     filter === 'active' ? !t.done : filter === 'completed' ? t.done : true,
@@ -98,8 +120,17 @@ export default function App() {
           )}
         </ul>
 
-        <div className="mt-4 text-sm text-slate-500">
-          {remaining} {remaining === 1 ? 'item' : 'items'} left
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+          <span>
+            {remaining} {remaining === 1 ? 'item' : 'items'} left
+          </span>
+          <button
+            onClick={clearCompleted}
+            disabled={completedCount === 0}
+            className="text-slate-500 hover:text-red-500 disabled:opacity-40 disabled:hover:text-slate-500 disabled:cursor-not-allowed transition"
+          >
+            Clear completed
+          </button>
         </div>
       </div>
     </div>
